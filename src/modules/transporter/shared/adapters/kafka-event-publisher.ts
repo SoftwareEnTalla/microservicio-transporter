@@ -106,18 +106,22 @@ export class KafkaEventPublisher implements IEventPublisher {
     const mutableEvent = event as any;
     const definition = resolveEventDefinition(topic);
     const payload = mutableEvent.payload || { instance: mutableEvent, metadata: {} };
+    const eventId = payload?.metadata?.eventId || randomUUID();
+    const correlationId = payload?.metadata?.correlationId || mutableEvent.aggregateId || randomUUID();
+    const causationId = payload?.metadata?.causationId || payload?.metadata?.correlationId || mutableEvent.aggregateId || randomUUID();
+    const traceId = payload?.metadata?.traceId || payload?.metadata?.correlationId || mutableEvent.aggregateId || randomUUID();
     const metadata = {
       initiatedBy: payload?.metadata?.initiatedBy || 'system',
-      correlationId: payload?.metadata?.correlationId || mutableEvent.aggregateId || randomUUID(),
-      causationId: payload?.metadata?.causationId || payload?.metadata?.correlationId || mutableEvent.aggregateId || randomUUID(),
-      eventId: payload?.metadata?.eventId || randomUUID(),
+      correlationId,
+      causationId,
+      eventId,
       eventName: payload?.metadata?.eventName || mutableEvent.constructor?.name || definition?.eventName || topic,
       eventVersion: payload?.metadata?.eventVersion || definition?.version || process.env.KAFKA_EVENT_VERSION || '1.0.0',
       sourceService: payload?.metadata?.sourceService || process.env.APP_NAME || process.env.KAFKA_CLIENT_ID || 'unknown-service',
-      traceId: payload?.metadata?.traceId || payload?.metadata?.correlationId || mutableEvent.aggregateId || randomUUID(),
+      traceId,
       retryCount: Number(payload?.metadata?.retryCount ?? 0),
       occurredOn: payload?.metadata?.occurredOn || new Date().toISOString(),
-      idempotencyKey: payload?.metadata?.idempotencyKey || topic + ':' + (payload?.metadata?.eventId || mutableEvent.aggregateId || randomUUID()),
+      idempotencyKey: payload?.metadata?.idempotencyKey || topic + ':' + eventId,
       originalTopic: payload?.metadata?.originalTopic || topic,
       ...payload?.metadata,
     };

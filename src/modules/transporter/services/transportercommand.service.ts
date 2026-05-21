@@ -168,6 +168,24 @@ export class TransporterCommandService implements OnModuleInit {
         ));
       }
 
+      // Regla de servicio: transporter-availability-change-emits-domain-event
+      // Shipping y returns deben poder reaccionar cuando el transportista cambia su disponibilidad operativa.
+      const availabilityStatusRequested = Object.prototype.hasOwnProperty.call(inputData ?? {}, 'availabilityStatus');
+      const nextAvailabilityStatus = this.dslValue(entityData, currentData, inputData, 'availabilityStatus');
+      if (
+        availabilityStatusRequested &&
+        nextAvailabilityStatus !== undefined &&
+        nextAvailabilityStatus !== null &&
+        String(nextAvailabilityStatus).trim() !== ''
+      ) {
+        pendingEvents.push(TransporterAvailabilityUpdatedEvent.create(
+          String(entityData['id'] ?? currentData['id'] ?? inputData?.id ?? 'transporter-update'),
+          (entity ?? current ?? inputData ?? {}) as any,
+          String(entityData['createdBy'] ?? currentData['createdBy'] ?? inputData?.createdBy ?? 'system'),
+          String(entityData['id'] ?? currentData['id'] ?? inputData?.id ?? 'transporter-update')
+        ));
+      }
+
     }
     if (publishEvents) {
       await this.publishDslDomainEvents(pendingEvents);
